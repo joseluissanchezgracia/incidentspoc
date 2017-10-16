@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: incidentsproject-server-template
+message: An incidents project backend service has been created in your project.
+metadata:
+  annotations:
+    description: |-
+      Rest API server for management of police incidents information. Connected to a MySQL database.
+    iconClass: icon-spring
+    tags: instant-app,incidentsproject
+  name: incidentsproject-server
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    name: ${INCIDENTS_SERVER_SERVICE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${INCIDENTS_SERVER_SERVICE_NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: ${INCIDENTS_SERVER_SERVICE_NAME}
+      spec:
+        containers:
+        - capabilities: {}
+          name: ${INCIDENTS_SERVER_SERVICE_NAME}
+          env:
+          - name: INCIDENTS_SERVER_DDBB_URL
+            value: ${INCIDENTS_SERVER_DDBB_URL}
+          - name: INCIDENTS_SERVER_DDBB_USER
+            value: ${INCIDENTS_SERVER_DDBB_USER}
+          - name: INCIDENTS_SERVER_DDBB_PASS
+            value: ${INCIDENTS_SERVER_DDBB_PASS}
+          image: ${REGISTRY}/incidentsproject-server:latest
+          resources:
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+            requests:
+              cpu: ${CPU_REQUEST}
+              memory: ${MEMORY_REQUEST}
+          imagePullPolicy: Always
+          securityContext:
+            capabilities: {}
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - incidentsproject-server
+        from:
+          kind: ImageStreamTag
+          name: incidentsproject-server:latest
+      type: ImageChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: "${INCIDENTS_SERVER_SERVICE_NAME}"
+    name: ${INCIDENTS_SERVER_SERVICE_NAME}
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      name: "${INCIDENTS_SERVER_SERVICE_NAME}"
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      app: "${INCIDENTS_SERVER_SERVICE_NAME}"
+    name: ${INCIDENTS_SERVER_SERVICE_NAME}
+  spec:
+    runPolicy: SerialLatestOnly
+    triggers:
+      - type: ConfigChange
+      - type: "Generic"
+        generic:
+          secret: "secret101"
+          allowEnv: true
+    source:
+      git:
+        uri: ${GIT_URL}
+    strategy:
+      dockerStrategy:
+        dockerfilePath: Dockerfile
+        env:
+          - name: ARTIFACT_URL
+            value: http://localhost:8081/repository/maven-public
+    output:
+      to:
+        kind: ImageStreamTag
+        name: incidentsproject-server:latest
+parameters:
+- description: The name of the OpenShift Service exposed for the Incidents project server container.
+  displayName: Incidents project server service Name
+  name: INCIDENTS_SERVER_SERVICE_NAME
+  value: incidentsproject-server
+  required: true
+- description: The jdbc URL in order to connect with incidents MySQL database
+  displayName: Database connnection URL
+  name: INCIDENTS_SERVER_DDBB_URL
+  value: jdbc:mysql://mysql:3306/incidents
+  required: true
+- description: Docker registry containing the image
+  displayName: Docker registry host, port and project
+  name: REGISTRY
+  value: 172.30.6.125:5000/orangepre
+  required: true
+- description: Git registry containing Dockerfile and artifacts for build image
+  displayName: Git registry with build artifacts
+  name: GIT_URL
+  value: https://incidentsproject-git.helix.everis.cloud/root/incidents-server-build
+  required: true
+- description: The user in order to connect with incidents MySQL database
+  displayName: Database connnection user
+  name: INCIDENTS_SERVER_DDBB_USER
+  value: root
+  required: true
+- description: The password in order to connect with incidents MySQL database
+  displayName: Database connnection password
+  name: INCIDENTS_SERVER_DDBB_PASS
+  value: admin
+  required: true
+- description: "Minimum ammount needed for the pod to run correctly. It is used by openshift to decide in which node to deploy the pod. However, if the node has more memory available, the pod will be able to use more than this value.  It is specified in MegaBytes ex: 1024Mi."
+  displayName: Memory request
+  name: MEMORY_REQUEST
+  value: 512Mi
+  required: true
+- description: "The maximum ammount of memory this pod is allowed to use.  If the container exceeds the specified memory limit, it will be terminated and potentially restarted dependent upon the container restart policy. It is specified in MegaBytes ex: 1024Mi."
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  value: 1024Mi
+  required: true
+- description: "Minimum ammount of CPU required for the pod to run correctly. This value will be used by OpenShift to decide in which node the pod should be deployed. However, if the node has more cpu millicores available, the pod will be allowed to use more than this value. It is specified in millicores (1 core = 1000 millicores). Ex: 500m"
+  displayName: Cpu Requests
+  name: CPU_REQUEST
+  value: 200m
+  required: true
+- description: "Maximum amount of CPU this pod is allowed to use. If the pod uses more than this value, OpenShift will throttle it (I will reduce the ammount of time the pod is allowed to run in the CPU) until it's cpu usage drops down to within it's limit range. It is specified in millicores (1 core = 1000 millicores). Ex: 500m" 
+  displayName: Cpu Limit
+  name: CPU_LIMIT
+  value: 400m
+  required: true
