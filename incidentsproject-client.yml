@@ -14,34 +14,36 @@ objects:
 - apiVersion: v1
   kind: Route
   metadata:
-    creationTimestamp: null
-    name: ${INCIDENTS_CLIENT_SERVICE_NAME}
+    labels:
+      app: "${APPLICATION_NAME}"
+    name: ${APPLICATION_NAME}
   spec:
-    host: "${INCIDENTS_CLIENT_SERVICE_NAME}.helix.everis.cloud"
+    host: "${APPLICATION_NAME}.helix.everis.cloud"
     path: /
     to:
       kind: Service
-      name: ${INCIDENTS_CLIENT_SERVICE_NAME}
+      name: ${APPLICATION_NAME}
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
-    creationTimestamp: null
-    name: ${INCIDENTS_CLIENT_SERVICE_NAME}
+    labels:
+      app: ${APPLICATION_NAME}
+    name: ${APPLICATION_NAME}
   spec:
     replicas: 1
     selector:
-      name: ${INCIDENTS_CLIENT_SERVICE_NAME}
+      name: ${APPLICATION_NAME}
     strategy:
       type: Recreate
     template:
       metadata:
         creationTimestamp: null
         labels:
-          name: ${INCIDENTS_CLIENT_SERVICE_NAME}
+          name: ${APPLICATION_NAME}
       spec:
         containers:
         - capabilities: {}
-          name: "${INCIDENTS_CLIENT_SERVICE_NAME}"
+          name: "${APPLICATION_NAME}"
           env:
           - name: INCIDENTS_CLIENT_SERVER_URL
             value: ${INCIDENTS_CLIENT_SERVER_URL}
@@ -53,6 +55,21 @@ objects:
             requests:
               cpu: ${CPU_REQUEST}
               memory: ${MEMORY_REQUEST}
+          livenessProbe:
+            httpGet:
+              path: /incidents-client/admin/home
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /incidents-client/admin/home
+              port: 8080
+              scheme: HTTP
+            timeoutSeconds: 5
+            periodSeconds: 10
           imagePullPolicy: Always
           securityContext:
             capabilities: {}
@@ -64,7 +81,7 @@ objects:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - incidentsproject-client
+        - ${APPLICATION_NAME}
         from:
           kind: ImageStreamTag
           name: incidentsproject-client:latest
@@ -73,8 +90,8 @@ objects:
   kind: Service
   metadata:
     labels:
-      app: "${INCIDENTS_CLIENT_SERVICE_NAME}"
-    name: ${INCIDENTS_CLIENT_SERVICE_NAME}
+      app: "${APPLICATION_NAME}"
+    name: ${APPLICATION_NAME}
   spec:
     ports:
     - name: web
@@ -82,19 +99,18 @@ objects:
       protocol: TCP
       targetPort: 8080
     selector:
-      name: "${INCIDENTS_CLIENT_SERVICE_NAME}"
+      name: "${APPLICATION_NAME}"
     sessionAffinity: None
     type: ClusterIP
 - apiVersion: v1
   kind: BuildConfig
   metadata:
     labels:
-      app: "${INCIDENTS_CLIENT_SERVICE_NAME}"
-    name: ${INCIDENTS_CLIENT_SERVICE_NAME}
+      app: "${APPLICATION_NAME}"
+    name: ${APPLICATION_NAME}
   spec:
     runPolicy: SerialLatestOnly
     triggers:
-      - type: ConfigChange
       - type: "Generic"
         generic:
           secret: "secret101"
@@ -113,9 +129,9 @@ objects:
         kind: ImageStreamTag
         name: incidentsproject-client:latest
 parameters:
-- description: The name of the OpenShift Service exposed for the Incidents project server container.
-  displayName: Incidents project server service Name
-  name: INCIDENTS_CLIENT_SERVICE_NAME
+- description: The name for the application.
+  displayName: Application name
+  name: APPLICATION_NAME
   value: incidentsproject-client
   required: true
 - description: The URL in order to connect with incidents project REST  server
@@ -126,7 +142,7 @@ parameters:
 - description: Docker registry containing the image
   displayName: Docker registry host, port and project
   name: REGISTRY
-  value: 172.30.6.125:5000/orangepre
+  value: 172.30.6.125:5000/orangesandbox
   required: true
 - description: Git registry containing Dockerfile and artifacts for build image
   displayName: Git registry with build artifacts
@@ -136,7 +152,7 @@ parameters:
 - description: "Minimum ammount needed for the pod to run correctly. It is used by openshift to decide in which node to deploy the pod. However, if the node has more memory available, the pod will be able to use more than this value.  It is specified in MegaBytes ex: 1024Mi."
   displayName: Memory request
   name: MEMORY_REQUEST
-  value: 512Mi
+  value: 768Mi
   required: true
 - description: "The maximum ammount of memory this pod is allowed to use.  If the container exceeds the specified memory limit, it will be terminated and potentially restarted dependent upon the container restart policy. It is specified in MegaBytes ex: 1024Mi."
   displayName: Memory Limit
