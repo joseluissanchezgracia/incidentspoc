@@ -1,0 +1,38 @@
+# Para que el build funcione y en orangedev se pullee la imagen, hay que añadir permisos
+# oc policy add-role-to-user \system:image-puller system:serviceaccount:orangedev:default --namespace=orangealm
+---
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  labels:
+    app: incidentsproject-server
+  name: incidentsproject-server
+spec:
+  runPolicy: SerialLatestOnly
+  triggers:
+    - type: "Generic"
+      generic:
+        secret: "secret101"
+        allowEnv: true
+  source:
+    git:
+      uri: https://incidentsproject-gogs.helix.everis.cloud/root/incidents-server-build
+  strategy:
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+      env:
+        - name: ARTIFACT_URL
+          value: http://localhost:8081/repository/maven-public
+  output:
+    to:
+      kind: ImageStreamTag
+      name: incidentsproject-server:latest
+---
+apiVersion: v1
+kind: ImageStream
+metadata:
+  name: incidentsproject-server
+spec:
+  dockerImageRepository: 172.30.6.125:5000/orangealm/incidentsproject-server
+  tags:
+  - name: latest

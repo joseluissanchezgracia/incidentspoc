@@ -39,7 +39,7 @@ objects:
             value: ${INCIDENTS_SERVER_DDBB_USER}
           - name: INCIDENTS_SERVER_DDBB_PASS
             value: ${INCIDENTS_SERVER_DDBB_PASS}
-          image: ${REGISTRY}/incidentsproject-server:latest
+          image: ${REGISTRY}/${INAMESPACE}/incidentsproject-server:latest
           resources:
             limits:
               cpu: ${CPU_LIMIT}
@@ -77,6 +77,7 @@ objects:
         from:
           kind: ImageStreamTag
           name: incidentsproject-server:latest
+          namespace: ${INAMESPACE}
       type: ImageChange
 - apiVersion: v1
   kind: Service
@@ -94,40 +95,6 @@ objects:
       name: "${APPLICATION_NAME}"
     sessionAffinity: None
     type: ClusterIP
-- apiVersion: v1
-  kind: BuildConfig
-  metadata:
-    labels:
-      app: "${APPLICATION_NAME}"
-    name: ${APPLICATION_NAME}
-  spec:
-    runPolicy: SerialLatestOnly
-    triggers:
-      - type: "Generic"
-        generic:
-          secret: "secret101"
-          allowEnv: true
-    source:
-      git:
-        uri: ${GIT_URL}
-    strategy:
-      dockerStrategy:
-        dockerfilePath: Dockerfile
-        env:
-          - name: ARTIFACT_URL
-            value: http://localhost:8081/repository/maven-public
-    output:
-      to:
-        kind: ImageStreamTag
-        name: incidentsproject-server:latest
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    name: incidentsproject-server
-  spec:
-    dockerImageRepository: ${REGISTRY}/incidentsproject-server
-    tags:
-    - name: latest
 parameters:
 - description: The name for the application.
   displayName: Application name
@@ -142,12 +109,12 @@ parameters:
 - description: Docker registry containing the image
   displayName: Docker registry host, port and project
   name: REGISTRY
-  value: 172.30.6.125:5000/orangedev
+  value: 172.30.6.125:5000
   required: true
-- description: Git registry containing Dockerfile and artifacts for build image
-  displayName: Git registry with build artifacts
-  name: GIT_URL
-  value: https://incidentsproject-gogs.helix.everis.cloud/root/incidents-server-build
+- description: Namespace containing the image
+  displayName: Image namespace
+  name: INAMESPACE
+  value: orangealm
   required: true
 - description: The user in order to connect with incidents MySQL database
   displayName: Database connnection user
