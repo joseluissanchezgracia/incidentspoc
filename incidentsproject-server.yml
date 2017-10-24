@@ -120,6 +120,14 @@ objects:
       to:
         kind: ImageStreamTag
         name: incidentsproject-server:latest
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: incidentsproject-server
+  spec:
+    dockerImageRepository: ${REGISTRY}/incidentsproject-server
+    tags:
+    - name: latest
 parameters:
 - description: The name for the application.
   displayName: Application name
@@ -134,12 +142,12 @@ parameters:
 - description: Docker registry containing the image
   displayName: Docker registry host, port and project
   name: REGISTRY
-  value: 172.30.6.125:5000/orangesandbox
+  value: 172.30.6.125:5000/orangedev
   required: true
 - description: Git registry containing Dockerfile and artifacts for build image
   displayName: Git registry with build artifacts
   name: GIT_URL
-  value: https://incidentsproject-git.helix.everis.cloud/root/incidents-server-build
+  value: https://incidentsproject-gogs.helix.everis.cloud/root/incidents-server-build
   required: true
 - description: The user in order to connect with incidents MySQL database
   displayName: Database connnection user

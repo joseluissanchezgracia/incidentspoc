@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ImageStream
+metadata:
+  name: incidents-jenkins
+  namespace: orangealm
+spec:
+  dockerImageRepository: 172.30.6.125:5000/orangealm/incidents-jenkins
+  tags:
+  - name: latest
+---
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  name: incidents-jenkins-build
+spec:
+  source:
+    git:
+      uri: https://incidentsproject-gogs.helix.everis.cloud/root/incidents-jenkins-build.git
+    type: Git
+  strategy:
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: jenkins:latest
+        namespace: openshift
+    type: Source
+  output:
+    to:
+      kind: ImageStreamTag
+      name: incidents-jenkins:latest
+      namespace: orangealm

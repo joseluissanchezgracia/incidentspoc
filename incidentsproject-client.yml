@@ -102,6 +102,22 @@ objects:
       name: "${APPLICATION_NAME}"
     sessionAffinity: None
     type: ClusterIP
+- apiVersion: extensions/v1beta1
+  kind: HorizontalPodAutoscaler
+  metadata:
+    labels:
+      app: "${APPLICATION_NAME}"
+    name: ${APPLICATION_NAME}
+  spec:
+    scaleRef:
+      subresource: scale
+      apiVersion: v1
+      kind: DeploymentConfig
+      name: ${APPLICATION_NAME}
+    minReplicas: 1
+    maxReplicas: 3
+    cpuUtilization:
+      targetPercentage: 70
 - apiVersion: v1
   kind: BuildConfig
   metadata:
@@ -128,6 +144,14 @@ objects:
       to:
         kind: ImageStreamTag
         name: incidentsproject-client:latest
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: incidentsproject-client
+  spec:
+    dockerImageRepository: ${REGISTRY}/incidentsproject-client
+    tags:
+    - name: latest
 parameters:
 - description: The name for the application.
   displayName: Application name
@@ -142,12 +166,12 @@ parameters:
 - description: Docker registry containing the image
   displayName: Docker registry host, port and project
   name: REGISTRY
-  value: 172.30.6.125:5000/orangesandbox
+  value: 172.30.6.125:5000/orangedev
   required: true
 - description: Git registry containing Dockerfile and artifacts for build image
   displayName: Git registry with build artifacts
   name: GIT_URL
-  value: https://incidentsproject-git.helix.everis.cloud/root/incidents-client-build
+  value: https://incidentsproject-gogs.helix.everis.cloud/root/incidents-client-build
   required: true
 - description: "Minimum ammount needed for the pod to run correctly. It is used by openshift to decide in which node to deploy the pod. However, if the node has more memory available, the pod will be able to use more than this value.  It is specified in MegaBytes ex: 1024Mi."
   displayName: Memory request
